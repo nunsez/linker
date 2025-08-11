@@ -45,19 +45,22 @@ impl Unlink {
             return Ok(());
         }
 
-        if let Ok(link_target) = fs::read_link(dst) {
-            if link_target != src {
-                return Ok(());
-            }
+        let Ok(link_target) = fs::read_link(dst) else {
+            return Ok(());
+        };
 
-            if self.simulate {
-                println!("[SIMULATE] UNLINK: {}", dst.display());
-            } else {
-                match fs::remove_file(dst) {
-                    Ok(_) => println!("UNLINK: {}", dst.display()),
-                    Err(e) => return Err(e.to_string()),
-                }
-            }
+        if link_target != src {
+            return Ok(());
+        }
+
+        if self.simulate {
+            println!("[SIMULATE] UNLINK: {}", dst.display());
+            return Ok(());
+        }
+
+        match fs::remove_file(dst) {
+            Ok(_) => println!("UNLINK: {}", dst.display()),
+            Err(e) => return Err(e.to_string()),
         }
 
         Ok(())
