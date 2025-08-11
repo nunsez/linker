@@ -31,7 +31,8 @@ impl Link {
         let package_path = self.dir.join(package);
 
         if !package_path.exists() {
-            return println!("WARNING: Package '{}' not found", package);
+            println!("WARNING: Package '{}' not found", package);
+            return;
         }
 
         self.traverse(&package_path, &self.target);
@@ -39,33 +40,31 @@ impl Link {
 
     fn traverse(&self, source_path: &Path, destination_path: &Path) {
         if source_path.is_file() || !destination_path.exists() {
-            let _ = self.create_symlink(source_path, destination_path);
+            self.create_symlink(source_path, destination_path);
             return;
         }
 
         traverse(source_path, destination_path, |s, d| self.traverse(s, d));
     }
 
-    fn create_symlink(&self, src: &Path, dst: &Path) -> Result<(), String> {
+    fn create_symlink(&self, src: &Path, dst: &Path) {
         if dst.exists() {
-            println!(
-                "WARNING: File exists and will not be symlinked: {}",
-                dst.display()
-            );
-            return Ok(());
+            let warning = "WARNING: File exists and will not be symlinked";
+            println!("{}: {}", warning, dst.display());
+            return;
         }
 
+        let message = format!("LINK: {} => {}", dst.display(), src.display());
+
         if self.simulate {
-            println!("[SIMULATE] LINK: {} -> {}", src.display(), dst.display());
-            return Ok(());
+            println!("[SIMULATE] {message}");
+            return;
         };
 
-        match symlink(src, dst) {
-            Ok(_) => {
-                println!("LINK: {} -> {}", dst.display(), src.display());
-                Ok(())
-            }
-            Err(e) => Err(e.to_string()),
+        println!("{message}");
+
+        if let Err(e) = symlink(src, dst) {
+            println!("LINK ERROR: {e}");
         }
     }
 }
