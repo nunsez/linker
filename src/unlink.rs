@@ -33,37 +33,38 @@ impl Unlink {
 
     fn traverse(&self, source_path: &Path, destination_path: &Path) {
         if destination_path.is_symlink() {
-            let _ = self.remove_symlink(source_path, destination_path);
+            self.remove_symlink(source_path, destination_path);
             return;
         }
 
         traverse(source_path, destination_path, |s, d| self.traverse(s, d));
     }
 
-    fn remove_symlink(&self, src: &Path, dst: &Path) -> Result<(), String> {
+    fn remove_symlink(&self, src: &Path, dst: &Path) {
         if !dst.exists() || !dst.is_symlink() {
-            return Ok(());
+            return;
         }
 
         let Ok(link_target) = fs::read_link(dst) else {
-            return Ok(());
+            return;
         };
 
         if link_target != src {
-            return Ok(());
+            return;
         }
+
+        let message = format!("UNLINK: {}", dst.display());
 
         if self.simulate {
-            println!("[SIMULATE] UNLINK: {}", dst.display());
-            return Ok(());
+            println!("[SIMULATE] {}", message);
+            return;
         }
 
-        match fs::remove_file(dst) {
-            Ok(_) => println!("UNLINK: {}", dst.display()),
-            Err(e) => return Err(e.to_string()),
-        }
+        println!("{message}");
 
-        Ok(())
+        if let Err(e) = fs::remove_file(dst) {
+            println!("UNLINK ERROR: {e}");
+        }
     }
 }
 
