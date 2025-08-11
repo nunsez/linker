@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 
-use std::{env::current_dir, path::PathBuf};
+use std::{env::current_dir, fs, path::PathBuf};
 
 #[derive(Debug, Parser)]
 #[command(version = "0.1.0")]
@@ -39,19 +39,21 @@ pub enum Mode {
 
 impl Cli {
     pub fn dir(&self) -> PathBuf {
-        self.dir
-            .as_ref()
-            .cloned()
-            .or_else(|| current_dir().ok())
-            .expect("Failed to get DIR")
+        let dir = match &self.dir {
+            Some(dir) => fs::canonicalize(dir),
+            None => current_dir(),
+        };
+
+        dir.expect("Failed to get DIR")
     }
 
     pub fn target(&self) -> PathBuf {
-        self.target
-            .as_ref()
-            .cloned()
-            .or_else(|| Some(self.dir().parent()?.to_path_buf()))
-            .expect("Failed to get TARGET")
+        let target = match &self.target {
+            Some(dir) => fs::canonicalize(dir).ok(),
+            None => self.dir().parent().map(|d| d.to_path_buf()),
+        };
+
+        target.expect("Failed to get TARGET")
     }
 
     pub fn parsed() -> Self {
