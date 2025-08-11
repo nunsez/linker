@@ -1,4 +1,6 @@
+use pathdiff::diff_paths;
 use std::{
+    env,
     os::unix::fs::symlink,
     path::{Path, PathBuf},
 };
@@ -31,7 +33,7 @@ impl Link {
         let package_path = self.dir.join(package);
 
         if !package_path.exists() {
-            println!("WARNING: Package '{}' not found", package);
+            println!("Package '{}' not found", package);
             return;
         }
 
@@ -39,7 +41,7 @@ impl Link {
     }
 
     fn traverse(&self, source_path: &Path, destination_path: &Path) {
-        if source_path.is_file() || !destination_path.exists() {
+        if !destination_path.exists() || source_path.is_file() {
             self.create_symlink(source_path, destination_path);
             return;
         }
@@ -47,23 +49,38 @@ impl Link {
         traverse(source_path, destination_path, |s, d| self.traverse(s, d));
     }
 
-    fn create_symlink(&self, src: &Path, dst: &Path) {
-        if dst.exists() {
-            let warning = "WARNING: File exists and will not be symlinked";
-            println!("{}: {}", warning, dst.display());
+    fn create_symlink(&self, original: &Path, link: &Path) {
+        if link.exists() {
+            println!("File exists and will not be symlinked: {}", link.display());
             return;
         }
 
-        let message = format!("LINK: {} => {}", dst.display(), src.display());
-
-        if self.simulate {
-            println!("[SIMULATE] {message}");
+        let Some(link_parent) = link.parent() else {
+            println!("Failed to get parent directory for {}", link.display());
             return;
         };
 
-        println!("{message}");
+        // for relative path exists check
+        if let Err(e) = env::set_current_dir(link_parent) {
+            println!("{e}");
+            return;
+        }
 
-        if let Err(e) = symlink(src, dst) {
+        let original_relative = diff_paths(original, link_parent)
+            .filter(|p| p.exists())
+            .unwrap_or_else(|| original.to_path_buf());
+
+        println!(
+            "LINK: {} => {}",
+            link.display(),
+            original_relative.display()
+        );
+
+        if self.simulate {
+            return;
+        };
+
+        if let Err(e) = symlink(original_relative, link) {
             println!("LINK ERROR: {e}");
         }
     }

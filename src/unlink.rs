@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -40,29 +40,44 @@ impl Unlink {
         traverse(source_path, destination_path, |s, d| self.traverse(s, d));
     }
 
-    fn remove_symlink(&self, src: &Path, dst: &Path) {
-        if !dst.exists() || !dst.is_symlink() {
+    fn remove_symlink(&self, original: &Path, link: &Path) {
+        if !link.exists() || !link.is_symlink() {
             return;
         }
 
-        let Ok(link_target) = fs::read_link(dst) else {
+        let Ok(link_target) = fs::read_link(link) else {
             return;
         };
 
-        if link_target != src {
+        let Some(link_parent) = link.parent() else {
+            println!("Failed to get parent directory for {}", link.display());
+            return;
+        };
+
+        if let Err(e) = env::set_current_dir(link_parent) {
+            println!("{e}");
             return;
         }
 
-        let message = format!("UNLINK: {}", dst.display());
+        match fs::canonicalize(link_target) {
+            Ok(link_target) => {
+                if link_target != original {
+                    return;
+                }
+            }
+            Err(e) => {
+                println!("{e}");
+                return;
+            }
+        }
+
+        println!("UNLINK: {}", link.display());
 
         if self.simulate {
-            println!("[SIMULATE] {}", message);
             return;
         }
 
-        println!("{message}");
-
-        if let Err(e) = fs::remove_file(dst) {
+        if let Err(e) = fs::remove_file(link) {
             println!("UNLINK ERROR: {e}");
         }
     }
