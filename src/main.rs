@@ -1,11 +1,8 @@
 mod cli;
-mod link;
-mod unlink;
-mod utils;
 
 use cli::{Cli, Mode};
-use link::Link;
-use unlink::Unlink;
+use linker::Link;
+use linker::Unlink;
 
 fn main() {
     let cli = Cli::parsed();
