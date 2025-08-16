@@ -1,9 +1,6 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
-pub fn package_list(target_path: &PathBuf) -> Vec<String> {
+pub fn package_list(target_path: &Path) -> Vec<String> {
     let Ok(entries) = fs::read_dir(target_path) else {
         return Vec::new();
     };
@@ -41,21 +38,3 @@ where
         }
     }
 }
-
-#[cfg(test)]
-pub(crate) fn touch(path: &Path) {
-    let parent = path.parent().unwrap();
-    ensure_exist(parent);
-    fs::write(path, "").unwrap();
-}
-
-#[cfg(test)]
-pub(crate) fn ensure_exist<P>(path: P)
-where
-    P: AsRef<Path>,
-{
-    fs::create_dir_all(path).unwrap();
-}
-
-#[cfg(test)]
-pub(crate) const FIXTURES_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures");

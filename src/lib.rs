@@ -1,6 +1,6 @@
 mod link;
+mod linker;
 mod unlink;
 mod utils;
 
-pub use link::Link;
-pub use unlink::Unlink;
+pub use linker::Linker;

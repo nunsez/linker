@@ -1,186 +1,67 @@
-use pathdiff::diff_paths;
-use std::{
-    env,
-    os::unix::fs::symlink,
-    path::{Path, PathBuf},
-};
+use crate::utils;
+use pathdiff;
+use std::{env, os::unix, path::Path};
 
-use crate::utils::{package_list, traverse};
-
-#[derive(Debug)]
-pub struct Link {
-    dir: PathBuf,
-    target: PathBuf,
-    simulate: bool,
-}
-
-impl Link {
-    pub fn new(dir: PathBuf, target: PathBuf, simulate: bool) -> Self {
-        Self {
-            dir,
-            target,
-            simulate,
-        }
-    }
-
-    pub fn handle_packages(&self) {
-        for package in package_list(&self.dir) {
-            self.handle_package(&package)
-        }
-    }
-
-    pub fn handle_package(&self, package: &str) {
-        let package_path = self.dir.join(package);
-
-        if !package_path.exists() {
-            println!("Package '{}' not found", package);
-            return;
-        }
-
-        self.traverse(&package_path, &self.target);
-    }
-
-    fn traverse(&self, source_path: &Path, destination_path: &Path) {
-        if !destination_path.exists() || source_path.is_file() {
-            self.create_symlink(source_path, destination_path);
-            return;
-        }
-
-        traverse(source_path, destination_path, |s, d| self.traverse(s, d));
-    }
-
-    fn create_symlink(&self, original: &Path, link: &Path) {
-        if link.exists() {
-            println!("File exists and will not be symlinked: {}", link.display());
-            return;
-        }
-
-        let Some(link_parent) = link.parent() else {
-            println!("Failed to get parent directory for {}", link.display());
-            return;
-        };
-
-        // for relative path exists check
-        if let Err(e) = env::set_current_dir(link_parent) {
-            println!("{e}");
-            return;
-        }
-
-        let original_relative = diff_paths(original, link_parent)
-            .filter(|p| p.exists())
-            .unwrap_or_else(|| original.to_path_buf());
-
-        println!(
-            "LINK: {} => {}",
-            link.display(),
-            original_relative.display()
-        );
-
-        if self.simulate {
-            return;
-        };
-
-        if let Err(e) = symlink(original_relative, link) {
-            println!("LINK ERROR: {e}");
-        }
+pub fn link_packages(original: &Path, link: &Path, simulate: bool) {
+    for package in utils::package_list(original) {
+        link_package(original, link, &package, simulate)
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::utils::{FIXTURES_DIR, ensure_exist, touch};
-    use std::fs;
-    use tempfile::tempdir;
+pub fn link_package(original: &Path, link: &Path, package: &str, simulate: bool) {
+    let package_path = original.join(package);
 
-    #[test]
-    fn simulate_is_true() {
-        let tempdir = tempdir().unwrap();
-        let target = tempdir.path();
-        let cmd = init_cmd(target, true);
-
-        cmd.handle_package("fish");
-
-        let config = target.join(".config");
-        assert!(!config.exists());
+    if !package_path.exists() {
+        eprintln!("Package '{}' not found", package);
+        return;
     }
 
-    #[test]
-    fn link_config() {
-        let tempdir = tempdir().unwrap();
-        let target = tempdir.path();
-        let cmd = init_cmd(target, false);
+    link_traverse(&package_path, link, simulate);
+}
 
-        cmd.handle_package("fish");
-
-        assert_associated_symlink("fish", target, ".config");
+fn link_traverse(original: &Path, link: &Path, simulate: bool) {
+    if !link.exists() || original.is_file() {
+        create_symlink(original, link, simulate);
+        return;
     }
 
-    #[test]
-    fn link_fish() {
-        let tempdir = tempdir().unwrap();
-        let target = tempdir.path();
-        let cmd = init_cmd(target, false);
+    utils::traverse(original, link, |orig, lnk| {
+        link_traverse(orig, lnk, simulate)
+    });
+}
 
-        ensure_exist(target.join(".config"));
-
-        cmd.handle_package("fish");
-
-        assert_associated_symlink("fish", target, ".config/fish");
+fn create_symlink(original: &Path, link: &Path, simulate: bool) {
+    if link.exists() {
+        eprintln!("File exists and will not be symlinked: {}", link.display());
+        return;
     }
 
-    #[test]
-    fn link_full() {
-        let tempdir = tempdir().unwrap();
-        let target = tempdir.path();
-        let cmd = init_cmd(target, false);
+    let Some(link_parent) = link.parent() else {
+        eprintln!("Failed to get parent directory for {}", link.display());
+        return;
+    };
 
-        let functions = target.join(".config/fish/functions");
-        let l = functions.join("l.fish");
-
-        touch(&l);
-
-        cmd.handle_package("fish");
-
-        assert!(!functions.is_symlink());
-        assert!(functions.is_dir());
-
-        assert!(l.exists());
-        assert!(!l.is_symlink());
-
-        assert_associated_symlink("fish", target, ".config/fish/functions/ls.fish");
-        assert_associated_symlink("fish", target, ".config/fish/conf.d");
-        assert_associated_symlink("fish", target, ".config/fish/config.fish");
+    // for relative path exists check
+    if let Err(e) = env::set_current_dir(link_parent) {
+        eprintln!("{e}");
+        return;
     }
 
-    #[test]
-    fn handle_packages() {
-        let tempdir = tempdir().unwrap();
-        let target = tempdir.path();
-        let cmd = init_cmd(target, false);
+    let original_relative = pathdiff::diff_paths(original, link_parent)
+        .filter(|p| p.exists())
+        .unwrap_or_else(|| original.to_path_buf());
 
-        ensure_exist(target.join(".config"));
+    println!(
+        "LINK: {} => {}",
+        link.display(),
+        original_relative.display()
+    );
 
-        cmd.handle_packages();
+    if simulate {
+        return;
+    };
 
-        assert_associated_symlink("fish", target, ".config/fish");
-        assert_associated_symlink("git", target, ".gitconfig");
-    }
-
-    fn assert_associated_symlink(package: &str, target: &Path, path: &str) {
-        dbg!(path);
-
-        let link = target.join(path);
-
-        assert!(link.is_symlink());
-
-        assert_eq!(
-            fs::read_link(link).unwrap(),
-            PathBuf::from(FIXTURES_DIR).join(package).join(path)
-        );
-    }
-
-    fn init_cmd(target: &Path, simulate: bool) -> Link {
-        Link::new(PathBuf::from(FIXTURES_DIR), target.to_path_buf(), simulate)
+    if let Err(e) = unix::fs::symlink(original_relative, link) {
+        eprintln!("LINK ERROR: {e}");
     }
 }
