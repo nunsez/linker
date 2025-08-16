@@ -2,32 +2,13 @@ use crate::utils;
 use pathdiff;
 use std::{env, os::unix, path::Path};
 
-pub fn link_packages(original: &Path, link: &Path, simulate: bool) {
-    for package in utils::package_list(original) {
-        link_package(original, link, &package, simulate)
-    }
-}
-
-pub fn link_package(original: &Path, link: &Path, package: &str, simulate: bool) {
-    let package_path = original.join(package);
-
-    if !package_path.exists() {
-        eprintln!("Package '{}' not found", package);
-        return;
-    }
-
-    link_traverse(&package_path, link, simulate);
-}
-
-fn link_traverse(original: &Path, link: &Path, simulate: bool) {
+pub fn link_tree(original: &Path, link: &Path, simulate: bool) {
     if !link.exists() || original.is_file() {
         create_symlink(original, link, simulate);
         return;
     }
 
-    utils::traverse(original, link, |orig, lnk| {
-        link_traverse(orig, lnk, simulate)
-    });
+    utils::traverse(original, link, |orig, lnk| link_tree(orig, lnk, simulate));
 }
 
 fn create_symlink(original: &Path, link: &Path, simulate: bool) {

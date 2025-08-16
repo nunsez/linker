@@ -1,4 +1,4 @@
-use crate::{link, unlink};
+use crate::{link, unlink, utils};
 use std::{env, fs, path::PathBuf};
 
 #[derive(Debug)]
@@ -30,28 +30,62 @@ impl Linker {
     }
 
     pub fn link_package(&self, package: &str) {
-        link::link_package(&self.dir, &self.target, package, self.simulate);
+        self._link(&package);
+        self.simulate_warning();
     }
 
     pub fn link_packages(&self) {
-        link::link_packages(&self.dir, &self.target, self.simulate);
+        for package in utils::package_list(&self.dir) {
+            self.link_package(&package);
+        }
     }
 
     pub fn unlink_package(&self, package: &str) {
-        unlink::unlink_package(&self.dir, &self.target, package, self.simulate);
+        self._unlink(&package);
+        self.simulate_warning();
     }
 
     pub fn unlink_packages(&self) {
-        unlink::unlink_packages(&self.dir, &self.target, self.simulate);
+        for package in utils::package_list(&self.dir) {
+            self.unlink_package(&package);
+        }
     }
 
     pub fn relink_package(&self, package: &str) {
-        unlink::unlink_package(&self.dir, &self.target, package, self.simulate);
-        link::link_package(&self.dir, &self.target, package, self.simulate);
+        self._relink(&package);
+        self.simulate_warning();
     }
 
     pub fn relink_packages(&self) {
-        unlink::unlink_packages(&self.dir, &self.target, self.simulate);
-        link::link_packages(&self.dir, &self.target, self.simulate);
+        for package in utils::package_list(&self.dir) {
+            self.relink_package(&package);
+        }
+    }
+
+    fn _link(&self, package: &str) {
+        let package_path = self.dir.join(package);
+
+        if !package_path.exists() {
+            eprintln!("Package '{}' not found", package);
+            return;
+        }
+
+        link::link_tree(&package_path, &self.target, self.simulate);
+    }
+
+    fn _unlink(&self, package: &str) {
+        let package_path = &self.dir.join(package);
+        unlink::unlink_tree(&package_path, &self.target, self.simulate);
+    }
+
+    fn _relink(&self, package: &str) {
+        self._unlink(&package);
+        self._link(&package);
+    }
+
+    fn simulate_warning(&self) {
+        if self.simulate {
+            eprintln!("WARNING: in simulation mode so not modifying filesystem.");
+        }
     }
 }

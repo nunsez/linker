@@ -1,26 +1,13 @@
 use crate::utils;
 use std::{env, fs, path::Path};
 
-pub fn unlink_packages(original: &Path, link: &Path, simulate: bool) {
-    for package in utils::package_list(original) {
-        unlink_package(original, link, &package, simulate)
-    }
-}
-
-pub fn unlink_package(original: &Path, link: &Path, package: &str, simulate: bool) {
-    let package_path = original.join(package);
-    unlink_traverse(&package_path, link, simulate);
-}
-
-fn unlink_traverse(original: &Path, link: &Path, simulate: bool) {
+pub fn unlink_tree(original: &Path, link: &Path, simulate: bool) {
     if link.is_symlink() {
         remove_symlink(original, link, simulate);
         return;
     }
 
-    utils::traverse(original, link, |orig, lnk| {
-        unlink_traverse(orig, lnk, simulate)
-    });
+    utils::traverse(original, link, |orig, lnk| unlink_tree(orig, lnk, simulate));
 }
 
 fn remove_symlink(original: &Path, link: &Path, simulate: bool) {

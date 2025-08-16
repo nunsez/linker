@@ -31,10 +31,10 @@ where
                         let dst_path = destination_path.join(file_name);
                         if_ok(&src_path, &dst_path)
                     }
-                    Err(e) => println!("{e}"),
+                    Err(e) => eprintln!("{e}"),
                 }
             }
-            Err(e) => println!("{e}"),
+            Err(e) => eprintln!("{e}"),
         }
     }
 }
