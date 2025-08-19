@@ -19,6 +19,4 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      env:
-        RUST_TEST_THREADS: "1"
       run: cargo test --verbose
