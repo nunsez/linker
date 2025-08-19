@@ -30,7 +30,7 @@ impl Linker {
     }
 
     pub fn link_package(&self, package: &str) {
-        self._link(&package);
+        self._link(package);
         self.simulate_warning();
     }
 
@@ -41,7 +41,7 @@ impl Linker {
     }
 
     pub fn unlink_package(&self, package: &str) {
-        self._unlink(&package);
+        self._unlink(package);
         self.simulate_warning();
     }
 
@@ -52,7 +52,7 @@ impl Linker {
     }
 
     pub fn relink_package(&self, package: &str) {
-        self._relink(&package);
+        self._relink(package);
         self.simulate_warning();
     }
 
@@ -75,12 +75,12 @@ impl Linker {
 
     fn _unlink(&self, package: &str) {
         let package_path = &self.dir.join(package);
-        unlink::unlink_tree(&package_path, &self.target, self.simulate);
+        unlink::unlink_tree(package_path, &self.target, self.simulate);
     }
 
     fn _relink(&self, package: &str) {
-        self._unlink(&package);
-        self._link(&package);
+        self._unlink(package);
+        self._link(package);
     }
 
     fn simulate_warning(&self) {

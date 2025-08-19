@@ -1,4 +1,7 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub fn package_list(target_path: &Path) -> Vec<String> {
     let Ok(entries) = fs::read_dir(target_path) else {
@@ -13,7 +16,7 @@ pub fn package_list(target_path: &Path) -> Vec<String> {
         .collect()
 }
 
-pub fn traverse<F>(source_path: &Path, destination_path: &Path, if_ok: F)
+pub fn walkdir<F>(source_path: &Path, destination_path: &Path, if_ok: F)
 where
     F: Fn(&Path, &Path),
 {
@@ -37,4 +40,8 @@ where
             Err(e) => eprintln!("{e}"),
         }
     }
+}
+pub fn absolute(relative: &Path, base: &Path) -> PathBuf {
+    let abs = base.join(relative);
+    path_clean::clean(abs)
 }

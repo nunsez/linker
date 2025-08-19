@@ -30,3 +30,9 @@ pub fn build_linker(target: &Path, simulate: bool) -> Linker {
         simulate,
     )
 }
+
+#[allow(dead_code)]
+pub fn absolute(relative: &Path, base: &Path) -> PathBuf {
+    let abs = base.join(relative);
+    path_clean::clean(abs)
+}

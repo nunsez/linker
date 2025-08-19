@@ -1,7 +1,7 @@
 mod common;
 
-use common::{build_linker, ensure_exist, fixture_path, touch};
-use std::{env, fs, path::Path};
+use common::{absolute, build_linker, ensure_exist, fixture_path, touch};
+use std::{fs, path::Path};
 use tempfile::tempdir;
 
 #[test]
@@ -83,10 +83,10 @@ fn assert_associated_symlink(package: &str, target: &Path, path: &str) {
 
     assert!(link.is_symlink());
 
-    env::set_current_dir(target).unwrap();
-    let link_relative = fs::read_link(link).unwrap();
-    let link_dest = fs::canonicalize(link_relative).unwrap();
+    let link_base = link.parent().unwrap();
+    let link_relative = fs::read_link(&link).unwrap();
+    let link_absolute = absolute(&link_relative, link_base);
     let src = fixture_path(package).join(path);
 
-    assert_eq!(link_dest, src);
+    assert_eq!(link_absolute, src);
 }

@@ -1,6 +1,5 @@
 use crate::utils;
-use pathdiff;
-use std::{env, os::unix, path::Path};
+use std::{os::unix, path::Path};
 
 pub fn link_tree(original: &Path, link: &Path, simulate: bool) {
     if !link.exists() || original.is_file() {
@@ -8,7 +7,7 @@ pub fn link_tree(original: &Path, link: &Path, simulate: bool) {
         return;
     }
 
-    utils::traverse(original, link, |orig, lnk| link_tree(orig, lnk, simulate));
+    utils::walkdir(original, link, |orig, lnk| link_tree(orig, lnk, simulate));
 }
 
 fn create_symlink(original: &Path, link: &Path, simulate: bool) {
@@ -22,15 +21,8 @@ fn create_symlink(original: &Path, link: &Path, simulate: bool) {
         return;
     };
 
-    // for relative path exists check
-    if let Err(e) = env::set_current_dir(link_parent) {
-        eprintln!("{e}");
-        return;
-    }
-
-    let original_relative = pathdiff::diff_paths(original, link_parent)
-        .filter(|p| p.exists())
-        .unwrap_or_else(|| original.to_path_buf());
+    let original_relative =
+        pathdiff::diff_paths(original, link_parent).unwrap_or_else(|| original.to_path_buf());
 
     println!(
         "LINK: {} => {}",

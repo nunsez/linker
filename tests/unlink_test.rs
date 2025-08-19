@@ -1,6 +1,6 @@
 mod common;
 
-use crate::common::{build_linker, ensure_exist, fixture_path, touch};
+use common::{build_linker, ensure_exist, fixture_path, touch};
 use std::os::unix;
 use tempfile::tempdir;
 

@@ -1,5 +1,5 @@
 use crate::utils;
-use std::{env, fs, path::Path};
+use std::{fs, path::Path};
 
 pub fn unlink_tree(original: &Path, link: &Path, simulate: bool) {
     if link.is_symlink() {
@@ -7,7 +7,7 @@ pub fn unlink_tree(original: &Path, link: &Path, simulate: bool) {
         return;
     }
 
-    utils::traverse(original, link, |orig, lnk| unlink_tree(orig, lnk, simulate));
+    utils::walkdir(original, link, |orig, lnk| unlink_tree(orig, lnk, simulate));
 }
 
 fn remove_symlink(original: &Path, link: &Path, simulate: bool) {
@@ -24,21 +24,10 @@ fn remove_symlink(original: &Path, link: &Path, simulate: bool) {
         return;
     };
 
-    if let Err(e) = env::set_current_dir(link_parent) {
-        eprintln!("{e}");
-        return;
-    }
+    let link_target = utils::absolute(&link_target, link_parent);
 
-    match fs::canonicalize(link_target) {
-        Ok(link_target) => {
-            if link_target != original {
-                return;
-            }
-        }
-        Err(e) => {
-            eprintln!("{e}");
-            return;
-        }
+    if link_target != original {
+        return;
     }
 
     println!("UNLINK: {}", link.display());
