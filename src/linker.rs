@@ -1,4 +1,4 @@
-use crate::{link, unlink, utils};
+use crate::utils;
 use std::{env, fs, path::PathBuf};
 
 #[derive(Debug)]
@@ -70,12 +70,12 @@ impl Linker {
             return;
         }
 
-        link::link_tree(&package_path, &self.target, self.simulate);
+        utils::link_tree(&package_path, &self.target, self.simulate);
     }
 
     fn _unlink(&self, package: &str) {
         let package_path = &self.dir.join(package);
-        unlink::unlink_tree(package_path, &self.target, self.simulate);
+        utils::unlink_tree(package_path, &self.target, self.simulate);
     }
 
     fn _relink(&self, package: &str) {
