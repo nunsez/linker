@@ -1,6 +1,7 @@
 mod common;
 
-use common::{build_linker, ensure_exist, fixture_path, touch};
+use common::{build_real_linker, build_simulate_linker, ensure_exist, fixture_path, touch};
+use linker::Linker;
 use std::os::unix;
 use tempfile::tempdir;
 
@@ -8,11 +9,11 @@ use tempfile::tempdir;
 fn simulate_is_true() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, true);
+    let linker = build_simulate_linker(target);
 
     ensure_exist(target.join(".config"));
     // create link (simulate false)
-    build_linker(target, false).link_package("fish");
+    build_real_linker(target).link_package("fish");
 
     let fish_config = target.join(".config/fish");
 
@@ -27,7 +28,7 @@ fn simulate_is_true() {
 fn unlink_config() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     linker.link_package("fish");
     linker.unlink_package("fish");
@@ -39,7 +40,7 @@ fn unlink_config() {
 fn unlink_fish() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     ensure_exist(target.join(".config"));
 
@@ -53,7 +54,7 @@ fn unlink_fish() {
 fn unlink_full() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     let l = target.join(".config/fish/functions/l.fish");
     touch(&l);
@@ -71,7 +72,7 @@ fn unlink_full() {
 fn ignore_another_symlink() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     ensure_exist(target.join(".config/fish"));
 
@@ -88,7 +89,7 @@ fn ignore_another_symlink() {
 fn unlink_packages() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     ensure_exist(target.join(".config"));
 

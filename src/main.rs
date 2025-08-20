@@ -1,10 +1,16 @@
 use clap::{Parser, ValueEnum};
-use linker::Linker;
+use linker::{Linker, LinkerConfigImpl, RealLinker, SimulateLinker};
 use std::path::PathBuf;
 
 fn main() {
     let cli = Cli::parse();
-    let linker = Linker::new(&cli.dir, &cli.target, cli.simulate);
+    let config = LinkerConfigImpl::new(&cli.dir, &cli.target);
+
+    let linker: Box<dyn Linker> = if cli.simulate {
+        Box::new(SimulateLinker::new(config))
+    } else {
+        Box::new(RealLinker::new(config))
+    };
 
     match (cli.mode, cli.package) {
         (Mode::Link, Some(package)) => linker.link_package(&package),

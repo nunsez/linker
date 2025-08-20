@@ -1,6 +1,9 @@
 mod common;
 
-use common::{absolute, build_linker, ensure_exist, fixture_path, touch};
+use common::{
+    absolute, build_real_linker, build_simulate_linker, ensure_exist, fixture_path, touch,
+};
+use linker::Linker;
 use std::{fs, path::Path};
 use tempfile::tempdir;
 
@@ -8,7 +11,7 @@ use tempfile::tempdir;
 fn simulate_is_true() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, true);
+    let linker = build_simulate_linker(target);
 
     linker.link_package("fish");
 
@@ -20,7 +23,9 @@ fn simulate_is_true() {
 fn link_config() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
+
+    dbg!(&linker);
 
     linker.link_package("fish");
 
@@ -31,7 +36,7 @@ fn link_config() {
 fn link_fish() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     ensure_exist(target.join(".config"));
 
@@ -44,7 +49,7 @@ fn link_fish() {
 fn link_full() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     let functions = target.join(".config/fish/functions");
     let l = functions.join("l.fish");
@@ -68,7 +73,7 @@ fn link_full() {
 fn link_packages() {
     let tempdir = tempdir().unwrap();
     let target = tempdir.path();
-    let linker = build_linker(target, false);
+    let linker = build_real_linker(target);
 
     ensure_exist(target.join(".config"));
 

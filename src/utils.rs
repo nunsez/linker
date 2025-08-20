@@ -1,6 +1,5 @@
 use std::{
     fs,
-    os::unix,
     path::{Path, PathBuf},
 };
 
@@ -42,85 +41,12 @@ where
         }
     }
 }
+
 pub fn absolute(relative: &Path, base: &Path) -> PathBuf {
     let abs = base.join(relative);
     path_clean::clean(abs)
 }
 
-pub fn link_tree(original: &Path, link: &Path, simulate: bool) {
-    if !link.exists() || original.is_file() {
-        create_symlink(original, link, simulate);
-        return;
-    }
-
-    walkdir(original, link, |orig, lnk| link_tree(orig, lnk, simulate));
-}
-
-pub fn unlink_tree(original: &Path, link: &Path, simulate: bool) {
-    if link.is_symlink() {
-        remove_symlink(original, link, simulate);
-        return;
-    }
-
-    walkdir(original, link, |orig, lnk| unlink_tree(orig, lnk, simulate));
-}
-
-fn create_symlink(original: &Path, link: &Path, simulate: bool) {
-    if link.exists() {
-        eprintln!("File exists and will not be symlinked: {}", link.display());
-        return;
-    }
-
-    let Some(link_parent) = link.parent() else {
-        eprintln!("Failed to get parent directory for {}", link.display());
-        return;
-    };
-
-    let original_relative =
-        pathdiff::diff_paths(original, link_parent).unwrap_or_else(|| original.to_path_buf());
-
-    println!(
-        "LINK: {} => {}",
-        link.display(),
-        original_relative.display()
-    );
-
-    if simulate {
-        return;
-    };
-
-    if let Err(e) = unix::fs::symlink(original_relative, link) {
-        eprintln!("LINK ERROR: {e}");
-    }
-}
-
-fn remove_symlink(original: &Path, link: &Path, simulate: bool) {
-    if !link.exists() || !link.is_symlink() {
-        return;
-    }
-
-    let Ok(link_target) = fs::read_link(link) else {
-        return;
-    };
-
-    let Some(link_parent) = link.parent() else {
-        eprintln!("Failed to get parent directory for {}", link.display());
-        return;
-    };
-
-    let link_target = absolute(&link_target, link_parent);
-
-    if link_target != original {
-        return;
-    }
-
-    println!("UNLINK: {}", link.display());
-
-    if simulate {
-        return;
-    }
-
-    if let Err(e) = fs::remove_file(link) {
-        eprintln!("UNLINK ERROR: {e}");
-    }
+pub fn print_file_exists(link: &Path) {
+    eprintln!("File exists and will not be symlinked: {}", link.display());
 }
