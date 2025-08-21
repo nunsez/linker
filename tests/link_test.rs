@@ -3,7 +3,6 @@ mod common;
 use common::{
     absolute, build_real_linker, build_simulate_linker, ensure_exist, fixture_path, touch,
 };
-use linker::Linker;
 use std::{fs, path::Path};
 use tempfile::tempdir;
 
@@ -13,7 +12,7 @@ fn simulate_is_true() {
     let target = tempdir.path();
     let linker = build_simulate_linker(target);
 
-    linker.link_package("fish");
+    linker.link(&[String::from("fish")]);
 
     let config = target.join(".config");
     assert!(!config.exists());
@@ -27,7 +26,7 @@ fn link_config() {
 
     dbg!(&linker);
 
-    linker.link_package("fish");
+    linker.link(&[String::from("fish")]);
 
     assert_associated_symlink("fish", target, ".config");
 }
@@ -40,7 +39,7 @@ fn link_fish() {
 
     ensure_exist(target.join(".config"));
 
-    linker.link_package("fish");
+    linker.link(&[String::from("fish")]);
 
     assert_associated_symlink("fish", target, ".config/fish");
 }
@@ -56,7 +55,7 @@ fn link_full() {
 
     touch(&l);
 
-    linker.link_package("fish");
+    linker.link(&[String::from("fish")]);
 
     assert!(!functions.is_symlink());
     assert!(functions.is_dir());
@@ -77,10 +76,10 @@ fn link_packages() {
 
     ensure_exist(target.join(".config"));
 
-    linker.link_packages();
+    linker.link(&[]);
 
-    assert_associated_symlink("fish", target, ".config/fish");
-    assert_associated_symlink("git", target, ".gitconfig");
+    assert!(!target.join(".config/fish").exists());
+    assert!(!target.join(".gitconfig").exists());
 }
 
 fn assert_associated_symlink(package: &str, target: &Path, path: &str) {

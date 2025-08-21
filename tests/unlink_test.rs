@@ -1,7 +1,6 @@
 mod common;
 
 use common::{build_real_linker, build_simulate_linker, ensure_exist, fixture_path, touch};
-use linker::Linker;
 use std::os::unix;
 use tempfile::tempdir;
 
@@ -12,14 +11,13 @@ fn simulate_is_true() {
     let linker = build_simulate_linker(target);
 
     ensure_exist(target.join(".config"));
-    // create link (simulate false)
-    build_real_linker(target).link_package("fish");
+    build_real_linker(target).link(&[String::from("fish")]);
 
     let fish_config = target.join(".config/fish");
 
     assert!(fish_config.is_symlink());
 
-    linker.unlink_package("fish");
+    linker.unlink(&[String::from("fish")]);
 
     assert!(fish_config.exists());
 }
@@ -30,8 +28,8 @@ fn unlink_config() {
     let target = tempdir.path();
     let linker = build_real_linker(target);
 
-    linker.link_package("fish");
-    linker.unlink_package("fish");
+    linker.link(&[String::from("fish")]);
+    linker.unlink(&[String::from("fish")]);
 
     assert!(!target.join(".config").exists());
 }
@@ -44,8 +42,8 @@ fn unlink_fish() {
 
     ensure_exist(target.join(".config"));
 
-    linker.link_package("fish");
-    linker.unlink_package("fish");
+    linker.link(&[String::from("fish")]);
+    linker.unlink(&[String::from("fish")]);
 
     assert!(!target.join(".config/fish").exists());
 }
@@ -59,8 +57,8 @@ fn unlink_full() {
     let l = target.join(".config/fish/functions/l.fish");
     touch(&l);
 
-    linker.link_package("fish");
-    linker.unlink_package("fish");
+    linker.link(&[String::from("fish")]);
+    linker.unlink(&[String::from("fish")]);
 
     assert!(l.is_file());
     assert!(!target.join(".config/fish/conf.d").exists());
@@ -80,7 +78,7 @@ fn ignore_another_symlink() {
     let git_config = fixture_path("git/.gitconfig");
     unix::fs::symlink(git_config, &fish_config).unwrap();
 
-    linker.unlink_package("fish");
+    linker.unlink(&[String::from("fish")]);
 
     assert!(fish_config.is_symlink());
 }
@@ -93,9 +91,9 @@ fn unlink_packages() {
 
     ensure_exist(target.join(".config"));
 
-    linker.link_packages();
-    linker.unlink_packages();
+    linker.link(&[String::from("fish"), String::from("git")]);
+    linker.unlink(&[]);
 
-    assert!(!target.join(".config/fish").is_symlink());
-    assert!(!target.join(".config/git").is_symlink());
+    assert!(target.join(".config/fish").is_symlink());
+    assert!(target.join(".gitconfig").is_symlink());
 }

@@ -1,20 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
-
-pub fn package_list(target_path: &Path) -> Vec<String> {
-    let Ok(entries) = fs::read_dir(target_path) else {
-        return Vec::new();
-    };
-
-    entries
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|path| path.is_dir())
-        .filter_map(|dir| Some(dir.file_name()?.to_str()?.to_owned()))
-        .collect()
-}
+use std::path::{Path, PathBuf};
 
 pub fn walkdir<F>(source_path: &Path, destination_path: &Path, if_ok: F)
 where
@@ -45,8 +29,4 @@ where
 pub fn absolute(relative: &Path, base: &Path) -> PathBuf {
     let abs = base.join(relative);
     path_clean::clean(abs)
-}
-
-pub fn print_file_exists(link: &Path) {
-    eprintln!("File exists and will not be symlinked: {}", link.display());
 }

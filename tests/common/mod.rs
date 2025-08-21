@@ -1,4 +1,4 @@
-use linker::{LinkerConfigImpl, RealLinker, SimulateLinker};
+use linker::Linker;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -23,20 +23,22 @@ where
     fs::create_dir_all(path).unwrap();
 }
 
-pub fn build_real_linker(target: &Path) -> RealLinker {
-    let config = LinkerConfigImpl::new(
+pub fn build_real_linker(target: &Path) -> Linker {
+    Linker::build(
         &Some(PathBuf::from(FIXTURES_DIR)),
         &Some(target.to_path_buf()),
-    );
-    RealLinker::new(config)
+        false,
+    )
+    .unwrap()
 }
 
-pub fn build_simulate_linker(target: &Path) -> SimulateLinker {
-    let config = LinkerConfigImpl::new(
+pub fn build_simulate_linker(target: &Path) -> Linker {
+    Linker::build(
         &Some(PathBuf::from(FIXTURES_DIR)),
         &Some(target.to_path_buf()),
-    );
-    SimulateLinker::new(config)
+        true,
+    )
+    .unwrap()
 }
 
 #[allow(dead_code)]

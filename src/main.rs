@@ -1,24 +1,19 @@
 use clap::{Parser, ValueEnum};
-use linker::{Linker, LinkerConfigImpl, RealLinker, SimulateLinker};
+use linker::Linker;
 use std::path::PathBuf;
 
 fn main() {
     let cli = Cli::parse();
-    let config = LinkerConfigImpl::new(&cli.dir, &cli.target);
 
-    let linker: Box<dyn Linker> = if cli.simulate {
-        Box::new(SimulateLinker::new(config))
-    } else {
-        Box::new(RealLinker::new(config))
-    };
+    let linker = Linker::build(&cli.dir, &cli.target, cli.simulate).unwrap_or_else(|e| {
+        eprintln!("{e}");
+        std::process::exit(1);
+    });
 
-    match (cli.mode, cli.package) {
-        (Mode::Link, Some(package)) => linker.link_package(&package),
-        (Mode::Link, None) => linker.link_packages(),
-        (Mode::Unlink, Some(package)) => linker.unlink_package(&package),
-        (Mode::Unlink, None) => linker.unlink_packages(),
-        (Mode::Relink, Some(package)) => linker.relink_package(&package),
-        (Mode::Relink, None) => linker.relink_packages(),
+    match cli.mode {
+        Mode::Link => linker.link(&cli.packages),
+        Mode::Unlink => linker.unlink(&cli.packages),
+        Mode::Relink => linker.relink(&cli.packages),
     }
 }
 
@@ -42,9 +37,9 @@ pub struct Cli {
     #[arg(short = 'n', long = "simulate")]
     pub simulate: bool,
 
-    /// Specific package to link (optional)
+    /// Specific packages to link
     #[arg(value_name = "PACKAGE")]
-    pub package: Option<String>,
+    pub packages: Vec<String>,
 }
 
 #[derive(Clone, Debug, ValueEnum)]
